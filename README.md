@@ -42,24 +42,22 @@ python xml_analyzer.py
 
 ## Database Schema
 
-### Groups Table
-- `group_id` (INTEGER PRIMARY KEY)
-- `total_files` (INTEGER)
-- `marked_y` (INTEGER)
-- `marked_n` (INTEGER)
-
-### Files Table
-- `file_id` (INTEGER PRIMARY KEY)
-- `group_id` (INTEGER, FOREIGN KEY)
-- `name` (TEXT)
-- `marked` (TEXT)
-
-### Matches Table
-- `match_id` (INTEGER PRIMARY KEY)
-- `group_id` (INTEGER, FOREIGN KEY)
-- `first` (TEXT)
-- `second` (TEXT)
-- `percentage` (REAL)
+### Flat Data Table
+- `id` (INTEGER PRIMARY KEY)
+- `group_id` (INTEGER)
+- `file_name` (TEXT)
+- `file_path` (TEXT)
+- `file_size` (INTEGER)
+- `file_date` (TEXT)
+- `file_marked` (TEXT)
+- `match_first` (TEXT)
+- `match_second` (TEXT)
+- `match_percentage` (REAL)
+- `match_type` (TEXT)
+- `match_size` (INTEGER)
+- `match_date` (TEXT)
+- `file_hash` (TEXT)
+- `file_extension` (TEXT)
 
 ## Example Queries
 

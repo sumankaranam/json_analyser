@@ -1,11 +1,10 @@
 import xml.etree.ElementTree as ET
 import sqlite3
-from typing import Dict, List, Any
-import pandas as pd
+from typing import Dict, List, Any, Set
 from tqdm import tqdm
 import logging
 from pathlib import Path
-import itertools
+import random
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -14,36 +13,74 @@ class XMLFlattener:
     def __init__(self, db_path: str = 'xml_data.db'):
         self.db_path = db_path
         self.batch_size = 1000
-        self.current_group_id = 0  # Add a counter for group IDs
+        self.current_group_id = 0
 
     def create_tables(self, conn: sqlite3.Connection) -> None:
-        """Create necessary database tables"""
+        """Create required database tables"""
+        # Create all_groups table
         conn.execute('''
-        CREATE TABLE IF NOT EXISTS groups (
-            group_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            total_files INTEGER,
-            marked_y INTEGER,
-            marked_n INTEGER
-        )''')
-
-        conn.execute('''
-        CREATE TABLE IF NOT EXISTS files (
-            file_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        CREATE TABLE IF NOT EXISTS all_groups (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             group_id INTEGER,
-            name TEXT,
-            marked TEXT,
-            FOREIGN KEY (group_id) REFERENCES groups (group_id)
+            file_id INTEGER,
+            filepath TEXT,
+            filename TEXT,
+            duplicate_flag BOOLEAN DEFAULT 1
         )''')
 
+        # Create matches table
         conn.execute('''
         CREATE TABLE IF NOT EXISTS matches (
-            match_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             group_id INTEGER,
-            first TEXT,
-            second TEXT,
-            percentage REAL,
-            FOREIGN KEY (group_id) REFERENCES groups (group_id)
+            first INTEGER,
+            second INTEGER,
+            percentage REAL
         )''')
+
+    def process_group(self, group_elem: ET.Element) -> tuple[List[Dict], List[Dict]]:
+        """Process a single group element"""
+        self.current_group_id += 1
+        group_id = self.current_group_id
+        
+        # Process files
+        files = group_elem.findall('file')
+        group_records = []
+        for file_id, file_elem in enumerate(files):
+            filepath = file_elem.get('path', '')
+            filename = Path(filepath).name if filepath else ''
+            
+            group_records.append({
+                'group_id': group_id,
+                'file_id': file_id,
+                'filepath': filepath,
+                'filename': filename,
+                'duplicate_flag': True
+            })
+
+        # Process matches
+        matches = group_elem.findall('match')
+        match_records = []
+        all_100_percent = True
+        
+        for match_elem in matches:
+            percentage = float(match_elem.get('percentage', 0))
+            match_records.append({
+                'group_id': group_id,
+                'first': int(match_elem.get('first', 0)),
+                'second': int(match_elem.get('second', 0)),
+                'percentage': percentage
+            })
+            if percentage < 100:
+                all_100_percent = False
+
+        # Update duplicate_flag if all matches are 100%
+        if all_100_percent and group_records:
+            # Randomly select one file to mark as non-duplicate
+            non_dup_idx = random.randint(0, len(group_records) - 1)
+            group_records[non_dup_idx]['duplicate_flag'] = False
+
+        return group_records, match_records
 
     def process_large_xml(self, xml_path: str) -> None:
         """Process large XML file using iterative parsing"""
@@ -53,44 +90,33 @@ class XMLFlattener:
         self.create_tables(conn)
         
         try:
-            # Use iterparse to handle large XML files
             context = ET.iterparse(xml_path, events=('end',))
-            
-            current_group: Dict[str, Any] = {}
-            files_buffer: List[Dict] = []
-            matches_buffer: List[Dict] = []
+            group_buffer = []
+            match_buffer = []
             
             for event, elem in tqdm(context, desc="Processing XML"):
                 if elem.tag == 'group':
-                    # Process group
-                    group_data = self._process_group(elem)
-                    if group_data:
-                        self._insert_group(conn, group_data)
-                        
-                        # Process files and matches within the group
-                        files = self._process_files(elem, group_data['group_id'])
-                        matches = self._process_matches(elem, group_data['group_id'])
-                        
-                        files_buffer.extend(files)
-                        matches_buffer.extend(matches)
-                        
-                        # Batch insert when buffer is full
-                        if len(files_buffer) >= self.batch_size:
-                            self._batch_insert_files(conn, files_buffer)
-                            files_buffer = []
-                        
-                        if len(matches_buffer) >= self.batch_size:
-                            self._batch_insert_matches(conn, matches_buffer)
-                            matches_buffer = []
+                    group_records, match_records = self.process_group(elem)
                     
-                    # Clear element to free memory
+                    group_buffer.extend(group_records)
+                    match_buffer.extend(match_records)
+                    
+                    # Batch insert when buffer is full
+                    if len(group_buffer) >= self.batch_size:
+                        self._batch_insert_groups(conn, group_buffer)
+                        group_buffer = []
+                    
+                    if len(match_buffer) >= self.batch_size:
+                        self._batch_insert_matches(conn, match_buffer)
+                        match_buffer = []
+                    
                     elem.clear()
             
             # Insert remaining buffers
-            if files_buffer:
-                self._batch_insert_files(conn, files_buffer)
-            if matches_buffer:
-                self._batch_insert_matches(conn, matches_buffer)
+            if group_buffer:
+                self._batch_insert_groups(conn, group_buffer)
+            if match_buffer:
+                self._batch_insert_matches(conn, match_buffer)
             
             conn.commit()
             logger.info("Processing completed successfully")
@@ -102,60 +128,19 @@ class XMLFlattener:
         finally:
             conn.close()
 
-    def _process_group(self, group_elem: ET.Element) -> Dict:
-        """Process a single group element"""
-        files = group_elem.findall('file')
-        marked_y = sum(1 for f in files if f.get('marked') == 'y')
-        marked_n = sum(1 for f in files if f.get('marked') == 'n')
-        
-        # Increment group ID for each new group
-        self.current_group_id += 1
-        
-        return {
-            'group_id': self.current_group_id,  # Use sequential ID instead of hash
-            'total_files': len(files),
-            'marked_y': marked_y,
-            'marked_n': marked_n
-        }
-
-    def _process_files(self, group_elem: ET.Element, group_id: int) -> List[Dict]:
-        """Process files within a group"""
-        return [{
-            'group_id': group_id,
-            'name': file.get('name', ''),
-            'marked': file.get('marked', '')
-        } for file in group_elem.findall('file')]
-
-    def _process_matches(self, group_elem: ET.Element, group_id: int) -> List[Dict]:
-        """Process matches within a group"""
-        return [{
-            'group_id': group_id,
-            'first': match.get('first', ''),
-            'second': match.get('second', ''),
-            'percentage': float(match.get('percentage', 0))
-        } for match in group_elem.findall('match')]
-
-    def _insert_group(self, conn: sqlite3.Connection, group_data: Dict) -> None:
-        """Insert group data into database"""
-        conn.execute('''
-        INSERT INTO groups (group_id, total_files, marked_y, marked_n)
-        VALUES (?, ?, ?, ?)
-        ''', (group_data['group_id'], group_data['total_files'],
-              group_data['marked_y'], group_data['marked_n']))
-
-    def _batch_insert_files(self, conn: sqlite3.Connection, files: List[Dict]) -> None:
-        """Batch insert files into database"""
+    def _batch_insert_groups(self, conn: sqlite3.Connection, data: List[Dict]) -> None:
+        """Batch insert group records"""
         conn.executemany('''
-        INSERT INTO files (group_id, name, marked)
-        VALUES (?, ?, ?)
-        ''', [(f['group_id'], f['name'], f['marked']) for f in files])
+        INSERT INTO all_groups (group_id, file_id, filepath, filename, duplicate_flag)
+        VALUES (:group_id, :file_id, :filepath, :filename, :duplicate_flag)
+        ''', data)
 
-    def _batch_insert_matches(self, conn: sqlite3.Connection, matches: List[Dict]) -> None:
-        """Batch insert matches into database"""
+    def _batch_insert_matches(self, conn: sqlite3.Connection, data: List[Dict]) -> None:
+        """Batch insert match records"""
         conn.executemany('''
         INSERT INTO matches (group_id, first, second, percentage)
-        VALUES (?, ?, ?, ?)
-        ''', [(m['group_id'], m['first'], m['second'], m['percentage']) for m in matches])
+        VALUES (:group_id, :first, :second, :percentage)
+        ''', data)
 
 def main():
     xml_path = 'duplicates.xml'

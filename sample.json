@@ -1,0 +1,20 @@
+{
+    "name": "John Doe",
+    "age": 30,
+    "addresses": [
+        {
+            "type": "home",
+            "street": "123 Main St",
+            "city": "Boston"
+        },
+        {
+            "type": "work",
+            "street": "456 Market St",
+            "city": "New York"
+        }
+    ],
+    "phoneNumbers": [
+        "123-456-7890",
+        "098-765-4321"
+    ]
+}

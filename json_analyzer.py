@@ -77,5 +77,5 @@ def analyze_json_file(file_path: str) -> None:
 
 if __name__ == "__main__":
     # Example usage
-    file_path = "sample.json"
+    file_path = "duplcates.json"
     analyze_json_file(file_path)

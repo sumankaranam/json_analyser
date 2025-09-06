@@ -1,0 +1,18 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+
+# Data files
+*.json
+*.xml
+*.db
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VS Code settings
+.vscode/

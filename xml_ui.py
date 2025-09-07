@@ -38,6 +38,10 @@ class XMLAnalyzerUI:
         self.current_page = 0
         self.total_pages = 0
         
+        # Add scrolling attributes
+        self.main_canvas = None
+        self.scrollable_frame = None
+        
         # Configure styles
         self.style.configure(
             'Action.TButton',

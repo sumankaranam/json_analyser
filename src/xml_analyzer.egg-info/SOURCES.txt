@@ -1,6 +1,5 @@
 README.md
 setup.py
-src/__init__.py
 src/ui/__init__.py
 src/ui/analyze_frame.py
 src/ui/main_window.py
@@ -10,8 +9,8 @@ src/ui/components/group_viewer.py
 src/ui/utils/__init__.py
 src/ui/utils/image_handler.py
 src/ui/utils/logger.py
-xml_analyzer.egg-info/PKG-INFO
-xml_analyzer.egg-info/SOURCES.txt
-xml_analyzer.egg-info/dependency_links.txt
-xml_analyzer.egg-info/requires.txt
-xml_analyzer.egg-info/top_level.txt
+src/xml_analyzer.egg-info/PKG-INFO
+src/xml_analyzer.egg-info/SOURCES.txt
+src/xml_analyzer.egg-info/dependency_links.txt
+src/xml_analyzer.egg-info/requires.txt
+src/xml_analyzer.egg-info/top_level.txt

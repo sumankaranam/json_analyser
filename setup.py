@@ -3,14 +3,14 @@ from setuptools import setup, find_packages
 setup(
     name="xml_analyzer",
     version="0.1.0",
-    packages=find_packages(),
+    package_dir={"": "src"},  # Add this to specify src directory
+    packages=find_packages(where="src"),  # Update this to look in src
     install_requires=[
         "pandas>=1.3.0",
         "lxml>=4.9.0",
         "tqdm>=4.65.0",
         "ttkthemes>=3.2.0",
         "Pillow>=9.0.0",  # for image handling
-        "python-tk",      # for GUI
         "sqlalchemy>=1.4.0",  # for database operations
     ],
     extras_require={

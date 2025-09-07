@@ -82,9 +82,15 @@ class XMLFlattener:
 
         return group_records, match_records
 
-    def process_large_xml(self, xml_path: str) -> None:
+    def process_large_xml(self, xml_path: str, progress_callback=None) -> None:
         """Process large XML file using iterative parsing"""
         logger.info(f"Processing XML file: {xml_path}")
+        
+        # Count total groups first for progress tracking
+        with open(xml_path, 'rb') as f:
+            total_groups = f.read().count(b'<group>')
+        
+        processed_groups = 0
         
         conn = sqlite3.connect(self.db_path)
         self.create_tables(conn)
@@ -94,8 +100,12 @@ class XMLFlattener:
             group_buffer = []
             match_buffer = []
             
-            for event, elem in tqdm(context, desc="Processing XML"):
+            for event, elem in tqdm(context, total=total_groups, desc="Processing XML"):
                 if elem.tag == 'group':
+                    processed_groups += 1
+                    if progress_callback:
+                        progress_callback(processed_groups, total_groups)
+                    
                     group_records, match_records = self.process_group(elem)
                     
                     group_buffer.extend(group_records)

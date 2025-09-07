@@ -1,13 +1,11 @@
 Metadata-Version: 2.4
 Name: xml_analyzer
 Version: 0.1.0
-Summary: XML Analysis and Database Storage Tool
-Author: Your Name
 Requires-Python: >=3.7
 Requires-Dist: pandas
 Requires-Dist: lxml
 Requires-Dist: tqdm
-Dynamic: author
+Requires-Dist: ttkthemes>=3.2.0
+Requires-Dist: Pillow
 Dynamic: requires-dist
 Dynamic: requires-python
-Dynamic: summary

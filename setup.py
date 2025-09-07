@@ -6,10 +6,10 @@ setup(
     packages=find_packages(),
     install_requires=[
         "pandas",
-        "lxml",  # for faster XML processing
-        "tqdm",  # for progress bars
+        "lxml",
+        "tqdm",
+        "ttkthemes>=3.2.0",
+        "Pillow",  # for image handling
     ],
-    author="Your Name",
-    description="XML Analysis and Database Storage Tool",
     python_requires=">=3.7",
 )

@@ -1,3 +1,4 @@
+README.md
 setup.py
 xml_analyzer.egg-info/PKG-INFO
 xml_analyzer.egg-info/SOURCES.txt

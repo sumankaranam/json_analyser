@@ -1,15 +1,38 @@
+
 # XML Data Analyzer
 
-A Python tool for analyzing large XML files and storing the data in SQLite database with memory-efficient processing.
+A Python GUI application for analyzing XML files containing duplicate file information and storing the data in SQLite database with memory-efficient processing.
 
 ## Features
 
 - Memory-efficient XML parsing using iterative approach
 - Batch processing for database operations
-- Progress tracking with tqdm
+- Progress tracking with visual feedback
 - Comprehensive logging
-- SQLite database storage with proper table relationships
-- Support for large XML files
+- SQLite database storage
+- Modern GUI with:
+  - Thumbnail preview of images
+  - Group-wise duplicate viewing
+  - Navigation controls
+  - File path tooltips
+  - Context menu for copying paths
+  - Image preview on click
+  - Original/Duplicate status indication
+
+## Requirements
+
+- Python 3.7 or higher
+- Operating System: Windows/Linux/MacOS
+
+### Dependencies
+
+- pandas: Data manipulation
+- lxml: XML processing
+- tqdm: Progress bars
+- ttkthemes: Modern GUI themes
+- Pillow: Image processing
+- python-tk: GUI framework
+- sqlalchemy: Database operations
 
 ## Installation
 
@@ -27,74 +50,92 @@ python -m venv .venv
 source .venv/bin/activate
 ```
 
-3. Install dependencies:
+3. Install package and dependencies:
 ```bash
+# For users
 pip install -e .
+
+# For developers (includes testing tools)
+pip install -e ".[dev]"
 ```
 
 ## Usage
 
-1. Place your XML file in the project directory
-2. Run the analyzer:
+1. Start the application:
 ```bash
 python xml_analyzer.py
 ```
 
+2. XML Analysis Mode:
+   - Click "Browse XML" to select input XML file
+   - Set database name
+   - Click "Process XML"
+   - Monitor progress in real-time
+
+3. View Duplicates Mode:
+   - Click "Browse DB" to select database
+   - Click "Load Duplicates"
+   - Navigate through groups using:
+     - Previous/Next buttons
+     - Page navigation
+     - Direct group access
+
+4. Image Interaction:
+   - Hover: Shows full file path
+   - Left-click: Opens image in default viewer
+   - Right-click: Copy file path menu
+
 ## Database Schema
 
-### Flat Data Table
+### all_groups Table
 - `id` (INTEGER PRIMARY KEY)
 - `group_id` (INTEGER)
-- `file_name` (TEXT)
-- `file_path` (TEXT)
-- `file_size` (INTEGER)
-- `file_date` (TEXT)
-- `file_marked` (TEXT)
-- `match_first` (TEXT)
-- `match_second` (TEXT)
-- `match_percentage` (REAL)
-- `match_type` (TEXT)
-- `match_size` (INTEGER)
-- `match_date` (TEXT)
-- `file_hash` (TEXT)
-- `file_extension` (TEXT)
+- `file_id` (INTEGER)
+- `filepath` (TEXT)
+- `filename` (TEXT)
+- `duplicate_flag` (BOOLEAN)
 
-## Example Queries
-
-```sql
--- Get total number of groups
-SELECT COUNT(*) FROM groups;
-
--- Get files marked as duplicates
-SELECT * FROM files WHERE marked = 'y';
-
--- Get match statistics by group
-SELECT g.group_id, COUNT(m.match_id) as match_count 
-FROM groups g 
-LEFT JOIN matches m ON g.group_id = m.group_id 
-GROUP BY g.group_id;
-```
+### matches Table
+- `id` (INTEGER PRIMARY KEY)
+- `group_id` (INTEGER)
+- `first` (INTEGER)
+- `second` (INTEGER)
+- `percentage` (REAL)
 
 ## Configuration
 
-- Batch size can be adjusted in `XMLFlattener` class (default: 1000)
-- Database path can be specified when initializing `XMLFlattener`
-- Logging level can be modified in the script
+- Batch size: Adjustable in XMLFlattener class (default: 1000)
+- Groups per page: Adjustable in UI (default: 5)
+- Thumbnail size: 150x150 pixels (adjustable in code)
+- Database path: User-configurable
+- Logging level: INFO by default
 
-## Requirements
+## Development
 
-- Python 3.7+
-- pandas
-- lxml
-- tqdm
+### Setup Development Environment
+```bash
+pip install -e ".[dev]"
+```
+
+### Running Tests
+```bash
+pytest
+```
+
+### Code Formatting
+```bash
+black .
+flake8
+```
 
 ## Contributing
 
 1. Fork the repository
 2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
+3. Install development dependencies
+4. Make your changes
+5. Run tests and linting
+6. Submit pull request
 
 ## License
 
